@@ -133,7 +133,13 @@ def generate_review_id() -> str:
     return uuid.uuid4().hex[:12]
 
 def call_ai_model(prompt: str, model: str = DEFAULT_MODEL) -> str:
-    """调用 AI 模型"""
+    """调用 AI 模型
+
+    正常情况：直接调用，无额外延迟
+    429 限流：自动重试（指数退避：5s → 10s → 20s）
+    """
+    import time
+
     api_key = os.environ.get("CODE_REVIEW_API_KEY", "")
     base_url = os.environ.get("CODE_REVIEW_BASE_URL", "https://api.openai.com/v1")
 
@@ -202,20 +208,39 @@ def call_ai_model(prompt: str, model: str = DEFAULT_MODEL) -> str:
     }
 
     url = f"{base_url}/chat/completions"
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(request_payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        },
-        method="POST"
-    )
 
-    with urllib.request.urlopen(request, timeout=DEFAULT_TIMEOUT) as response:
-        result = json.loads(response.read().decode("utf-8"))
+    # 429 限流重试逻辑（仅在遇到 429 时触发，正常调用无影响）
+    max_retries = 3
+    base_delay = 5
 
-    return result["choices"][0]["message"]["content"]
+    for attempt in range(max_retries):
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(request_payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            },
+            method="POST"
+        )
+
+        try:
+            with urllib.request.urlopen(request, timeout=DEFAULT_TIMEOUT) as response:
+                result = json.loads(response.read().decode("utf-8"))
+
+            # 成功响应，直接返回（无延迟）
+            return result["choices"][0]["message"]["content"]
+
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < max_retries - 1:
+                # 仅 429 限流时重试
+                delay = base_delay * (2 ** attempt)
+                debug_log(f"API 限流 (429)，{delay} 秒后重试 ({attempt + 1}/{max_retries})")
+                time.sleep(delay)
+                continue
+            else:
+                # 其他错误直接抛出，不重试
+                raise
 
 def build_review_prompt(
     code: str,

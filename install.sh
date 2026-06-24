@@ -5,9 +5,11 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CURRENT_BRANCH=$(git -C "$SCRIPT_DIR" branch --show-current 2>/dev/null || echo "unknown")
 
 echo "🔧 Code Reviewer 安装脚本"
 echo "========================"
+echo "📦 当前分支: $CURRENT_BRANCH"
 echo ""
 
 # 检查 Python
@@ -56,6 +58,15 @@ for skill in auto-review-loop code-with-review review-current; do
     mkdir -p ~/.claude/skills/$skill
     cp "$SCRIPT_DIR/skills/$skill/SKILL.md" ~/.claude/skills/$skill/SKILL.md
 done
+
+# 混合版额外安装
+if [ "$CURRENT_BRANCH" = "feature/hybrid-review" ]; then
+    echo "📦 安装混合版额外组件..."
+    mkdir -p ~/.claude/skills/code-review-standard
+    cp "$SCRIPT_DIR/skills/code-review-standard/SKILL.md" ~/.claude/skills/code-review-standard/SKILL.md
+    echo "   ✅ code-review-standard SKILL.md"
+fi
+
 echo "✅ Skills 已安装"
 
 # 安装 Workflow
@@ -63,6 +74,13 @@ echo ""
 echo "⚙️  安装 Workflow..."
 mkdir -p ~/.claude/workflows
 cp "$SCRIPT_DIR/workflow/auto-review-loop.js" ~/.claude/workflows/
+
+# 混合版额外安装
+if [ "$CURRENT_BRANCH" = "feature/hybrid-review" ]; then
+    cp "$SCRIPT_DIR/workflow/auto-review-loop-hybrid.js" ~/.claude/workflows/
+    echo "   ✅ auto-review-loop-hybrid.js"
+fi
+
 echo "✅ Workflow 已安装"
 
 # 安装 Hook（可选）
@@ -79,18 +97,29 @@ fi
 echo ""
 echo "🎉 安装完成！"
 echo ""
+echo "📋 版本信息："
+echo "   分支: $CURRENT_BRANCH"
+if [ "$CURRENT_BRANCH" = "feature/hybrid-review" ]; then
+    echo "   模式: 混合版（Workflow 控制流 + SKILL.md 审阅标准）"
+    echo "   特性: 429 限流自动重试"
+else
+    echo "   模式: 基础版（Workflow 脚本）"
+fi
+echo ""
 echo "📋 下一步："
 echo "   1. 编辑 $SCRIPT_DIR/mcp-server/.env 填入 API 密钥"
 echo "   2. 重启 Claude Code 会话"
 echo "   3. 输入以下命令测试："
 echo ""
-echo "      请使用 code-reviewer 审阅这段代码："
-echo "      \`\`\`python"
-echo "      def hello():"
-echo "          print('hello')"
-echo "      \`\`\`"
+if [ "$CURRENT_BRANCH" = "feature/hybrid-review" ]; then
+    echo "      # 混合版 Workflow"
+    echo "      /workflow auto-review-loop-hybrid --args '{\"code\": \"def hello(): print('hello')\", \"targetScore\": 8}'"
+else
+    echo "      # 基础版 Workflow"
+    echo "      /workflow auto-review-loop --args '{\"code\": \"def hello(): print('hello')\", \"targetScore\": 8}'"
+fi
 echo ""
-echo "   或使用自动循环审阅："
+echo "   或使用自然语言："
 echo ""
 echo "      循环审阅这段代码，目标分数 8："
 echo "      \`\`\`python"

@@ -2,6 +2,13 @@
 
 基于 AI 模型的代码自动审阅系统，支持循环审阅、自动修改、边写边审。
 
+## 版本说明
+
+| 分支 | 版本 | 说明 |
+|------|------|------|
+| `main` | 基础版 | Workflow 脚本 + SKILL.md 技能 |
+| `feature/hybrid-review` | 混合版 | Workflow 控制流 + SKILL.md 审阅标准 + 429 限流重试 |
+
 ## 功能特性
 
 - 🔍 **结构化审阅** — 5 个维度评分（质量/正确性/性能/安全/测试）
@@ -9,6 +16,7 @@
 - 📁 **多模式支持** — 代码片段、单文件、多文件、整个目录
 - ✍️ **边写边审** — 编写代码时自动审阅并修复
 - 🛠️ **MCP 标准** — 兼容 Claude Code 的 MCP 协议
+- 🔄 **429 限流重试** — 自动处理 API 限流（混合版）
 
 ## 快速开始
 
@@ -68,6 +76,8 @@ cp workflow/auto-review-loop.js ~/.claude/workflows/
 
 ## 项目结构
 
+### main 分支（基础版）
+
 ```
 code-reviewer/
 ├── mcp-server/                     # MCP 服务器
@@ -90,6 +100,30 @@ code-reviewer/
 ├── .gitignore
 ├── LICENSE
 └── README.md                       # 本文件
+```
+
+### feature/hybrid-review 分支（混合版）
+
+在 main 分支基础上增加：
+
+```
+code-reviewer/
+├── mcp-server/
+│   ├── server.py                   # 主程序（带 429 限流重试）
+│   └── .env.example
+├── workflow/
+│   ├── auto-review-loop.js         # 原始 Workflow
+│   └── auto-review-loop-hybrid.js  # 混合方式 Workflow（新增）
+├── skills/
+│   ├── auto-review-loop/
+│   ├── code-with-review/
+│   ├── review-current/
+│   └── code-review-standard/       # 审阅标准定义（新增）
+│       └── SKILL.md
+├── docs/
+│   ├── README.md
+│   └── README-hybrid.md            # 混合方式文档（新增）
+└── ...
 ```
 
 ## 支持的 API
@@ -124,9 +158,47 @@ code-reviewer/
 }
 ```
 
+## 使用方式
+
+### 基础版（main 分支）
+
+```bash
+# 切换到 main 分支
+git checkout main
+
+# 安装
+bash install.sh
+
+# 使用
+> /workflow auto-review-loop --args '{"code": "你的代码", "targetScore": 8}'
+```
+
+### 混合版（feature/hybrid-review 分支）
+
+```bash
+# 切换到混合版分支
+git checkout feature/hybrid-review
+
+# 安装
+bash install.sh
+
+# 使用
+> /workflow auto-review-loop-hybrid --args '{"code": "你的代码", "targetScore": 8}'
+```
+
+### 混合版优势
+
+| 特性 | 基础版 | 混合版 |
+|------|--------|--------|
+| **审阅标准** | 硬编码在脚本中 | 定义在 SKILL.md |
+| **可维护性** | 需要改代码 | 只需改 SKILL.md |
+| **429 限流处理** | ❌ 无 | ✅ 自动重试 |
+| **确定性** | 高 | 高 |
+
 ## 文档
 
-完整文档见 [docs/README.md](docs/README.md)
+- 基础版文档：[docs/README.md](docs/README.md)
+- 混合版文档：[docs/README-hybrid.md](docs/README-hybrid.md)
 
 ## 许可证
 
