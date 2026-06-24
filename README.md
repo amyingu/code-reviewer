@@ -6,8 +6,9 @@
 
 | 分支 | 版本 | 说明 |
 |------|------|------|
-| `main` | 基础版 | Workflow 脚本 + SKILL.md 技能 |
+| `main` | 最新版 | 包含所有功能（基础版 + 混合版） |
 | `feature/hybrid-review` | 混合版 | Workflow 控制流 + SKILL.md 审阅标准 + 429 限流重试 |
+| `579ed41` | 基础版 | 原始版本（可通过 `git checkout 579ed41` 切回） |
 
 ## 功能特性
 
@@ -76,54 +77,47 @@ cp workflow/auto-review-loop.js ~/.claude/workflows/
 
 ## 项目结构
 
-### main 分支（基础版）
+### main 分支（最新最全版本）
 
 ```
 code-reviewer/
-├── mcp-server/                     # MCP 服务器
-│   ├── server.py                   # 主程序
-│   └── .env.example                # 配置模板
-├── workflow/                       # Workflow 脚本
-│   └── auto-review-loop.js         # 循环审阅工作流
-├── skills/                         # Claude Code Skills
+├── mcp-server/                             # MCP 服务器
+│   ├── server.py                           # 主程序（带 429 限流重试）
+│   └── .env.example                        # 配置模板
+├── workflow/                               # Workflow 脚本
+│   ├── auto-review-loop.js                 # 基础版 Workflow
+│   └── auto-review-loop-hybrid.js          # 混合版 Workflow
+├── skills/                                 # Claude Code Skills
 │   ├── auto-review-loop/
-│   │   └── SKILL.md                # 循环审阅技能
+│   │   └── SKILL.md                        # 循环审阅技能
 │   ├── code-with-review/
-│   │   └── SKILL.md                # 自审阅技能
-│   └── review-current/
-│       └── SKILL.md                # 审阅当前改动技能
-├── hooks/                          # Hook 脚本
-│   └── post-write-review.sh        # Write/Edit 后提醒
-├── docs/                           # 文档
-│   └── README.md                   # 完整文档
-├── install.sh                      # 一键安装脚本
+│   │   └── SKILL.md                        # 自审阅技能
+│   ├── review-current/
+│   │   └── SKILL.md                        # 审阅当前改动技能
+│   └── code-review-standard/               # 审阅标准定义
+│       └── SKILL.md
+├── hooks/                                  # Hook 脚本
+│   └── post-write-review.sh                # Write/Edit 后提醒
+├── docs/                                   # 文档
+│   ├── README.md                           # 完整文档
+│   └── README-hybrid.md                    # 混合版文档
+├── install.sh                              # 一键安装脚本
 ├── .gitignore
 ├── LICENSE
-└── README.md                       # 本文件
+└── README.md                               # 本文件
 ```
 
-### feature/hybrid-review 分支（混合版）
+### 版本切换
 
-在 main 分支基础上增加：
+```bash
+# 最新版（包含所有功能）
+git checkout main
 
-```
-code-reviewer/
-├── mcp-server/
-│   ├── server.py                   # 主程序（带 429 限流重试）
-│   └── .env.example
-├── workflow/
-│   ├── auto-review-loop.js         # 原始 Workflow
-│   └── auto-review-loop-hybrid.js  # 混合方式 Workflow（新增）
-├── skills/
-│   ├── auto-review-loop/
-│   ├── code-with-review/
-│   ├── review-current/
-│   └── code-review-standard/       # 审阅标准定义（新增）
-│       └── SKILL.md
-├── docs/
-│   ├── README.md
-│   └── README-hybrid.md            # 混合方式文档（新增）
-└── ...
+# 原始基础版
+git checkout 579ed41
+
+# 混合版分支
+git checkout feature/hybrid-review
 ```
 
 ## 支持的 API
@@ -160,40 +154,49 @@ code-reviewer/
 
 ## 使用方式
 
-### 基础版（main 分支）
+### 安装
 
 ```bash
-# 切换到 main 分支
-git checkout main
+# 克隆仓库
+git clone https://github.com/amyingu/code-reviewer.git
+cd code-reviewer
 
 # 安装
 bash install.sh
-
-# 使用
-> /workflow auto-review-loop --args '{"code": "你的代码", "targetScore": 8}'
 ```
 
-### 混合版（feature/hybrid-review 分支）
+### 使用 Workflow
 
 ```bash
-# 切换到混合版分支
-git checkout feature/hybrid-review
+# 基础版 Workflow
+> /workflow auto-review-loop --args '{"code": "你的代码", "targetScore": 8}'
 
-# 安装
-bash install.sh
-
-# 使用
+# 混合版 Workflow（推荐）
 > /workflow auto-review-loop-hybrid --args '{"code": "你的代码", "targetScore": 8}'
 ```
 
-### 混合版优势
+### 自然语言（推荐）
 
-| 特性 | 基础版 | 混合版 |
-|------|--------|--------|
+```bash
+# 循环审阅代码
+请循环审阅这段代码，目标分数 8
+
+# 审阅文件
+自动审阅 ./src/app.py，目标分数 8
+
+# 边写边审
+写一个排序函数，并审阅
+```
+
+### 两个版本对比
+
+| 特性 | 基础版 | 混合版（推荐） |
+|------|--------|----------------|
 | **审阅标准** | 硬编码在脚本中 | 定义在 SKILL.md |
 | **可维护性** | 需要改代码 | 只需改 SKILL.md |
 | **429 限流处理** | ❌ 无 | ✅ 自动重试 |
 | **确定性** | 高 | 高 |
+| **自定义** | 修改 JS 脚本 | 修改 SKILL.md |
 
 ## 文档
 
