@@ -7,8 +7,7 @@
 | 分支 | 版本 | 说明 |
 |------|------|------|
 | `main` | 最新版 | 包含所有功能（基础版 + 混合版） |
-| `feature/hybrid-review` | 混合版 | Workflow 控制流 + SKILL.md 审阅标准 + 429 限流重试 |
-| `579ed41` | 基础版 | 原始版本（可通过 `git checkout 579ed41` 切回） |
+| `basic-version` | 基础版 | 原始版本（可通过 `git checkout basic-version` 切回） |
 
 ## 功能特性
 
@@ -114,10 +113,7 @@ code-reviewer/
 git checkout main
 
 # 原始基础版
-git checkout 579ed41
-
-# 混合版分支
-git checkout feature/hybrid-review
+git checkout basic-version
 ```
 
 ## 支持的 API
